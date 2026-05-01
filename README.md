@@ -19,32 +19,51 @@ Mail Manager is a privacy-first, stateless web application that helps users anal
 
 ---
 
-## Setup Instructions
+## Development Guide (Step-by-Step)
 
-### 1. Backend Setup
+To run this project locally, you need to have **two terminal windows** open simultaneously: one for the backend (Flask) and one for the frontend (React).
 
-1. Navigate to the `backend` directory.
-2. Install dependencies:
+### Step 1: Set up the Backend
+
+1. **Open Terminal #1** and navigate to the backend folder:
+   ```bash
+   cd backend
+   ```
+2. **Install dependencies**:
    ```bash
    pip install -r requirements.txt
    ```
-3. Create a `.env` file based on `.env.example`:
+3. **Configure Environment Variables**:
+   - Create a file named `.env` in the `backend/` directory.
+   - Copy the contents from `.env.example` into `.env`.
+   - Fill in your `GMAIL_CLIENT_ID`, `GMAIL_CLIENT_SECRET`, etc. (See the OAuth Configuration section below).
+4. **Run the Backend Server**:
    ```bash
-   cp .env.example .env
+   python run.py
    ```
-4. Configure your OAuth credentials (see below).
+   *The backend will start at `http://localhost:5000`.*
 
-### 2. Frontend Setup
+### Step 2: Set up the Frontend
 
-1. Navigate to the `frontend` directory.
-2. Install dependencies:
+1. **Open Terminal #2** and navigate to the frontend folder:
+   ```bash
+   cd frontend
+   ```
+2. **Install dependencies**:
    ```bash
    npm install
    ```
-3. Run the development server:
+3. **Run the Frontend Development Server**:
    ```bash
    npm run dev
    ```
+   *The frontend will start at `http://localhost:5173`.*
+
+### Step 3: Access the App
+
+- Open your browser and go to **`http://localhost:5173`**.
+- The frontend is configured to automatically proxy requests to the backend at port 5000.
+- You can now click "Connect Gmail" or "Connect Outlook" to begin the analysis.
 
 ---
 
