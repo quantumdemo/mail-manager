@@ -16,7 +16,7 @@ def create_app():
     # Session configuration
     app.config['SESSION_TYPE'] = 'filesystem'
     app.config['SESSION_PERMANENT'] = False
-    app.config['SESSION_USE_SIGNER'] = True
+    app.config['SESSION_USE_SIGNER'] = False
 
     Session(app)
     CORS(app, supports_credentials=True)

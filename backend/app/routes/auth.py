@@ -13,10 +13,14 @@ def status():
 
 @bp.route('/gmail/login')
 def gmail_login():
-    flow = GmailService.get_flow()
-    auth_url, state = flow.authorization_url(prompt='consent')
-    session['gmail_state'] = state
-    return jsonify({'url': auth_url})
+    try:
+        flow = GmailService.get_flow()
+        auth_url, state = flow.authorization_url(prompt='consent')
+        session['gmail_state'] = state
+        return jsonify({'url': auth_url})
+    except Exception as e:
+        current_app.logger.error(f"Gmail login error: {str(e)}")
+        return jsonify({'error': str(e)}), 500
 
 @bp.route('/gmail/callback')
 def gmail_callback():
@@ -37,9 +41,13 @@ def gmail_callback():
 
 @bp.route('/outlook/login')
 def outlook_login():
-    msal_app = OutlookService.get_msal_app()
-    auth_url = msal_app.get_authorization_request_url(OutlookService.SCOPES)
-    return jsonify({'url': auth_url})
+    try:
+        msal_app = OutlookService.get_msal_app()
+        auth_url = msal_app.get_authorization_request_url(OutlookService.SCOPES)
+        return jsonify({'url': auth_url})
+    except Exception as e:
+        current_app.logger.error(f"Outlook login error: {str(e)}")
+        return jsonify({'error': str(e)}), 500
 
 @bp.route('/outlook/callback')
 def outlook_callback():

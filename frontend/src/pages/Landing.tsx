@@ -9,9 +9,21 @@ interface LandingProps {
 const Landing: React.FC<LandingProps> = ({ onAuthSuccess }) => {
   const handleLogin = (provider: 'gmail' | 'outlook') => {
     fetch(`/api/auth/${provider}/login`)
-      .then(res => res.json())
+      .then(res => {
+        if (!res.ok) throw new Error('Failed to initiate login');
+        return res.json();
+      })
       .then(data => {
-        window.location.href = data.url;
+        if (data.url) {
+          window.location.href = data.url;
+        } else {
+          console.error('No redirect URL received');
+          alert('Login configuration error. Please check backend environment variables.');
+        }
+      })
+      .catch(err => {
+        console.error(err);
+        alert('Could not connect to the authentication service. Make sure the backend is running and configured.');
       });
   };
 
