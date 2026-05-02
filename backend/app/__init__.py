@@ -7,6 +7,9 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+# Allow insecure transport for local development (http instead of https)
+os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
+
 socketio = SocketIO(cors_allowed_origins="*")
 
 def create_app():

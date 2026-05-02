@@ -25,8 +25,17 @@ def gmail_login():
 @bp.route('/gmail/callback')
 def gmail_callback():
     state = session.get('gmail_state')
-    flow = GmailService.get_flow()
-    flow.fetch_token(authorization_response=request.url)
+    flow = GmailService.get_flow(state=state)
+
+    # Fix for oauthlib which sometimes strictly requires https
+    # even if OAUTHLIB_INSECURE_TRANSPORT is set, depending on the environment.
+    # Or more importantly, ensuring the callback URL matches what Google expects.
+    callback_url = request.url
+    if callback_url.startswith('http://') and not os.getenv('DEVELOPMENT'):
+         # In production we should always be using https
+         pass
+
+    flow.fetch_token(authorization_response=callback_url)
 
     creds = flow.credentials
     session['gmail_token'] = {

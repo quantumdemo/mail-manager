@@ -14,7 +14,7 @@ class GmailService:
     ]
 
     @staticmethod
-    def get_flow():
+    def get_flow(state=None):
         client_config = {
             "web": {
                 "client_id": os.getenv("GMAIL_CLIENT_ID"),
@@ -27,7 +27,8 @@ class GmailService:
         return Flow.from_client_config(
             client_config,
             scopes=GmailService.SCOPES,
-            redirect_uri=os.getenv("REDIRECT_URI")
+            redirect_uri=os.getenv("REDIRECT_URI"),
+            state=state
         )
 
     @staticmethod
