@@ -16,6 +16,10 @@ const Dashboard: React.FC = () => {
   useEffect(() => {
     socket.on('scan_progress', (data) => {
       setProgress(data.progress);
+      setSummary(prev => ({
+        ...prev,
+        total_scanned: data.count
+      }));
     });
 
     socket.on('scan_complete', (data) => {

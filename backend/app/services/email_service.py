@@ -53,29 +53,38 @@ class GmailService:
             if not messages:
                 break
 
+            # Use batch requests to speed up metadata fetching
+            def callback(request_id, response, exception):
+                nonlocal count
+                if exception is not None:
+                    # Handle error
+                    pass
+                else:
+                    headers = response.get('payload', {}).get('headers', [])
+                    subject = next((h['value'] for h in headers if h['name'].lower() == 'subject'), 'No Subject')
+                    sender = next((h['value'] for h in headers if h['name'].lower() == 'from'), 'Unknown')
+                    date = next((h['value'] for h in headers if h['name'].lower() == 'date'), '')
+
+                    emails.append({
+                        'id': response['id'],
+                        'threadId': response['threadId'],
+                        'subject': subject,
+                        'sender': sender,
+                        'date': date,
+                        'size': response.get('sizeEstimate', 0),
+                        'provider': 'gmail'
+                    })
+                    count += 1
+
+                    if count % 20 == 0:
+                        progress = int((count / max_results) * 100)
+                        socketio.emit('scan_progress', {'progress': progress, 'count': count}, room=sid)
+
+            batch = service.new_batch_http_request(callback=callback)
             for msg in messages:
-                # Fetch metadata only
-                meta = service.users().messages().get(userId='me', id=msg['id'], format='metadata').execute()
-                headers = meta.get('payload', {}).get('headers', [])
+                batch.add(service.users().messages().get(userId='me', id=msg['id'], format='metadata'))
 
-                subject = next((h['value'] for h in headers if h['name'].lower() == 'subject'), 'No Subject')
-                sender = next((h['value'] for h in headers if h['name'].lower() == 'from'), 'Unknown')
-                date = next((h['value'] for h in headers if h['name'].lower() == 'date'), '')
-
-                emails.append({
-                    'id': msg['id'],
-                    'threadId': msg['threadId'],
-                    'subject': subject,
-                    'sender': sender,
-                    'date': date,
-                    'size': meta.get('sizeEstimate', 0),
-                    'provider': 'gmail'
-                })
-                count += 1
-
-                if count % 10 == 0:
-                    progress = int((count / max_results) * 100)
-                    socketio.emit('scan_progress', {'progress': progress, 'count': count}, room=sid)
+            batch.execute()
 
             next_page_token = results.get('nextPageToken')
             if not next_page_token:
@@ -109,7 +118,7 @@ class OutlookService:
         headers = {'Authorization': f'Bearer {token}'}
         date_threshold = (datetime.datetime.now() - datetime.timedelta(days=months*30)).isoformat() + "Z"
 
-        url = f"https://graph.microsoft.com/v1.0/me/messages?$filter=receivedDateTime ge {date_threshold}&$select=id,subject,from,receivedDateTime,size&$top=100"
+        url = f"https://graph.microsoft.com/v1.0/me/messages?$filter=receivedDateTime ge {date_threshold}&$select=id,subject,from,receivedDateTime,size&$top=500"
 
         emails = []
         count = 0
@@ -130,7 +139,7 @@ class OutlookService:
                 })
                 count += 1
 
-                if count % 10 == 0:
+                if count % 20 == 0:
                     progress = int((count / max_results) * 100)
                     socketio.emit('scan_progress', {'progress': progress, 'count': count}, room=sid)
 
