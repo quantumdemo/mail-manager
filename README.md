@@ -125,6 +125,28 @@ The application uses a heuristic-based AI engine to label emails:
 
 ---
 
+## MetLife / Enterprise Deployment (Docker)
+
+For deployment on internal platforms like MetLife, it is recommended to use Docker to ensure environment consistency.
+
+### 1. Build the Docker Image
+```bash
+docker build -t mail-manager .
+```
+
+### 2. Run the Container
+```bash
+docker run -p 5000:5000 \
+  -e GMAIL_CLIENT_ID=your_id \
+  -e GMAIL_CLIENT_SECRET=your_secret \
+  -e SECRET_KEY=your_secret_key \
+  mail-manager
+```
+
+*Note: In an enterprise environment, ensure that your OAuth redirect URIs are registered for the specific internal domain used by the platform.*
+
+---
+
 ## Security Note
 
 This application is **stateless**. It uses server-side filesystem sessions to temporarily store tokens and metadata for the duration of the scan. All data is cleared when the session expires or the user logs out.

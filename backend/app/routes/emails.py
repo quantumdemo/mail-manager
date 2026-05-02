@@ -19,30 +19,38 @@ def start_scan():
     session_id = session.sid if hasattr(session, 'sid') else sid
 
     def background_scan(app_context, session_data, socket_sid, s_id):
+        print(f"Starting background scan for SID: {socket_sid}")
         with app_context:
             all_emails = []
 
             # Gmail Scan
             if 'gmail_token' in session_data:
+                print(f"Fetching Gmail metadata for {socket_sid}")
                 try:
                     gmail_emails = GmailService.fetch_metadata(
                         session_data['gmail_token'], socketio, socket_sid, months=months
                     )
                     all_emails.extend(gmail_emails)
+                    print(f"Fetched {len(gmail_emails)} emails from Gmail")
                 except Exception as e:
+                    print(f"Gmail fetch error: {e}")
                     socketio.emit('scan_error', {'provider': 'gmail', 'error': str(e)}, room=socket_sid)
 
             # Outlook Scan
             if 'outlook_token' in session_data:
+                print(f"Fetching Outlook metadata for {socket_sid}")
                 try:
                     outlook_emails = OutlookService.fetch_metadata(
                         session_data['outlook_token'], socketio, socket_sid, months=months
                     )
                     all_emails.extend(outlook_emails)
+                    print(f"Fetched {len(outlook_emails)} emails from Outlook")
                 except Exception as e:
+                    print(f"Outlook fetch error: {e}")
                     socketio.emit('scan_error', {'provider': 'outlook', 'error': str(e)}, room=socket_sid)
 
             # Analysis
+            print(f"Analyzing {len(all_emails)} total emails")
             recommendations = AIRecommendationEngine.analyze_emails(all_emails)
             groups = AIRecommendationEngine.group_emails(all_emails)
 

@@ -3,6 +3,7 @@ import { Mail, Shield, Trash2, LayoutDashboard, List, Settings, Sun, Moon } from
 import Dashboard from './pages/Dashboard';
 import SenderList from './pages/SenderList';
 import Landing from './pages/Landing';
+import logo from './assets/logo.jpg';
 import { io } from 'socket.io-client';
 
 const socket = io();
@@ -45,9 +46,7 @@ function App() {
       {/* Sidebar */}
       <aside className="w-64 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 flex flex-col">
         <div className="p-6 flex items-center gap-3">
-          <div className="w-10 h-10 bg-primary-600 rounded-lg flex items-center justify-center text-white">
-            <Mail size={24} />
-          </div>
+          <img src={logo} alt="Mail Manager" className="w-10 h-10 rounded-lg object-cover" />
           <h1 className="text-xl font-bold font-sans tracking-tight">Mail Manager</h1>
         </div>
 

@@ -39,12 +39,20 @@ const Dashboard: React.FC = () => {
   }, []);
 
   const handleStartScan = () => {
+    if (!socket.connected) {
+      alert("Still connecting to server... Please wait a moment.");
+      return;
+    }
+
     setIsScanning(true);
     setProgress(0);
     fetch(`/api/emails/scan?sid=${socket.id}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ months: 6 })
+    }).catch(err => {
+      console.error("Failed to start scan:", err);
+      setIsScanning(false);
     });
   };
 

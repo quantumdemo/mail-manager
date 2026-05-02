@@ -11,27 +11,42 @@ class AIRecommendationEngine:
         recommendations = {}
 
         # Heuristics for common bulk senders/newsletters
-        bulk_keywords = ['newsletter', 'noreply', 'no-reply', 'marketing', 'info', 'offers', 'promotions']
+        bulk_keywords = ['newsletter', 'noreply', 'no-reply', 'marketing', 'info', 'offers', 'promotions', 'subscription', 'support', 'alert', 'notification']
 
         for email in emails:
             score = 0
             explanation = []
             sender = email['sender'].lower()
+            subject = email.get('subject', '').lower()
 
             # 1. Frequency heuristic
             count = sender_counts[email['sender']]
-            if count > 50:
-                score += 30
+            if count > 100:
+                score += 40
+                explanation.append(f"Extremely high frequency ({count} emails)")
+            elif count > 50:
+                score += 25
                 explanation.append(f"High frequency sender ({count} emails)")
 
             # 2. Keyword heuristic in sender name/email
-            if any(k in sender for k in bulk_keywords):
-                score += 40
-                explanation.append("Likely bulk or promotional sender")
+            matched_keywords = [k for k in bulk_keywords if k in sender]
+            if matched_keywords:
+                score += 35
+                explanation.append(f"Sender matches bulk pattern: {matched_keywords[0]}")
 
-            # 3. Size heuristic
-            if email['size'] > 1024 * 1024 * 5: # > 5MB
-                score += 20
+            # 3. Keyword heuristic in subject
+            subject_keywords = ['off', '%', 'sale', 'deal', 'limited time', 'unsubscribe', 'verify']
+            matched_subject = [k for k in subject_keywords if k in subject]
+            if matched_subject:
+                score += 15
+                explanation.append(f"Subject contains promotional keyword: {matched_subject[0]}")
+
+            # 4. Size heuristic
+            if email['size'] > 1024 * 1024 * 10: # > 10MB
+                score += 30
+                explanation.append("Very large email (> 10MB)")
+            elif email['size'] > 1024 * 1024 * 5: # > 5MB
+                score += 15
                 explanation.append("Large email (> 5MB)")
 
             # Determine label

@@ -76,15 +76,20 @@ class GmailService:
                     })
                     count += 1
 
-                    if count % 20 == 0:
-                        progress = int((count / max_results) * 100)
+                    if count % 10 == 0:
+                        # Since we don't know total, we use a relative progress or just the count
+                        # For now, let's keep progress relative to max_results but ensure it updates
+                        progress = min(int((count / max_results) * 100), 99)
                         socketio.emit('scan_progress', {'progress': progress, 'count': count}, room=sid)
 
             batch = service.new_batch_http_request(callback=callback)
             for msg in messages:
                 batch.add(service.users().messages().get(userId='me', id=msg['id'], format='metadata'))
 
-            batch.execute()
+            try:
+                batch.execute()
+            except Exception as e:
+                print(f"Error executing Gmail batch: {e}")
 
             next_page_token = results.get('nextPageToken')
             if not next_page_token:
@@ -96,8 +101,18 @@ class GmailService:
     def delete_messages(creds_dict, message_ids):
         creds = Credentials.from_authorized_user_info(creds_dict)
         service = build('gmail', 'v1', credentials=creds)
-        for msg_id in message_ids:
-            service.users().messages().trash(userId='me', id=msg_id).execute()
+
+        # Batch move to trash (limit 1000 per request)
+        for i in range(0, len(message_ids), 1000):
+            batch = message_ids[i:i+1000]
+            service.users().messages().batchModify(
+                userId='me',
+                body={
+                    'ids': batch,
+                    'addLabelIds': ['TRASH'],
+                    'removeLabelIds': ['INBOX', 'UNREAD', 'SPAM']
+                }
+            ).execute()
         return True
 
 class OutlookService:
@@ -139,8 +154,8 @@ class OutlookService:
                 })
                 count += 1
 
-                if count % 20 == 0:
-                    progress = int((count / max_results) * 100)
+                if count % 10 == 0:
+                    progress = min(int((count / max_results) * 100), 99)
                     socketio.emit('scan_progress', {'progress': progress, 'count': count}, room=sid)
 
             url = response.get('@odata.nextLink')
@@ -152,6 +167,22 @@ class OutlookService:
     @staticmethod
     def delete_messages(token, message_ids):
         headers = {'Authorization': f'Bearer {token}', 'Content-Type': 'application/json'}
-        for msg_id in message_ids:
-            requests.post(f"https://graph.microsoft.com/v1.0/me/messages/{msg_id}/trash", headers=headers)
+
+        # Outlook Graph API Batching
+        # Note: Microsoft Graph batching has a limit of 20 requests per batch.
+        for i in range(0, len(message_ids), 20):
+            batch_ids = message_ids[i:i+20]
+            requests_list = []
+            for idx, msg_id in enumerate(batch_ids):
+                requests_list.append({
+                    "id": str(idx),
+                    "method": "POST",
+                    "url": f"/me/messages/{msg_id}/trash"
+                })
+
+            requests.post(
+                "https://graph.microsoft.com/v1.0/\$batch",
+                headers=headers,
+                json={"requests": requests_list}
+            )
         return True
