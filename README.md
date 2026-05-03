@@ -4,7 +4,7 @@ Mail Manager is a privacy-first, stateless web application that helps users anal
 
 ## Features
 
-- **Secure OAuth Connection**: Connect to Gmail and Outlook without sharing your password.
+- **Secure OAuth Connection**: Connect to Gmail without sharing your password.
 - **Privacy First**: Stateless architecture. We don't store your emails or tokens in a database.
 - **AI Recommendation Engine**: Smart heuristics to identify newsletters, bulk senders, and large emails.
 - **Bulk Cleanup**: Easily move unwanted emails to trash.
@@ -15,7 +15,7 @@ Mail Manager is a privacy-first, stateless web application that helps users anal
 
 - **Frontend**: React (Vite), Tailwind CSS, Lucide Icons, Framer Motion.
 - **Backend**: Flask, Flask-SocketIO, Flask-Session.
-- **APIs**: Gmail API, Microsoft Graph API.
+- **APIs**: Gmail API.
 
 ---
 
@@ -63,7 +63,7 @@ To run this project locally, you need to have **two terminal windows** open simu
 
 - Open your browser and go to **`http://localhost:5173`**.
 - The frontend is configured to automatically proxy requests to the backend at port 5000.
-- You can now click "Connect Gmail" or "Connect Outlook" to begin the analysis.
+- You can now click "Connect Gmail" to begin the analysis.
 
 ---
 
@@ -82,18 +82,6 @@ To run this project locally, you need to have **two terminal windows** open simu
 7. Choose **Web application**.
 8. Add Redirect URIs: `http://localhost:5000/api/auth/gmail/callback` (and your production URL).
 9. Copy the Client ID and Client Secret to your `.env` file.
-
-### Microsoft (Outlook / Graph API)
-
-1. Go to the [Microsoft Entra admin center](https://entra.microsoft.com/) (Azure AD).
-2. Go to **App registrations > New registration**.
-3. Choose **Accounts in any organizational directory and personal Microsoft accounts**.
-4. Add Redirect URI: `http://localhost:5000/api/auth/outlook/callback` (Web).
-5. Go to **Certificates & secrets > New client secret**.
-6. Copy the Client ID and Secret to your `.env` file.
-7. Under **API permissions**, add:
-   - `Mail.Read`
-   - `Mail.ReadWrite`
 
 ---
 

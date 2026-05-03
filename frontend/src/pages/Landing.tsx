@@ -1,5 +1,5 @@
 import React from 'react';
-import { Chrome as Google, Landmark as Microsoft, Mail, ShieldCheck, Zap } from 'lucide-react';
+import { Chrome as Google, Mail, ShieldCheck, Zap } from 'lucide-react';
 import logo from '../assets/logo.jpg';
 
 interface LandingProps {
@@ -7,7 +7,7 @@ interface LandingProps {
 }
 
 const Landing: React.FC<LandingProps> = ({ onAuthSuccess }) => {
-  const handleLogin = (provider: 'gmail' | 'outlook') => {
+  const handleLogin = (provider: 'gmail') => {
     fetch(`/api/auth/${provider}/login`)
       .then(res => {
         if (!res.ok) throw new Error('Failed to initiate login');
@@ -55,13 +55,6 @@ const Landing: React.FC<LandingProps> = ({ onAuthSuccess }) => {
             >
               <Google className="text-red-500" />
               Connect Gmail
-            </button>
-            <button
-              onClick={() => handleLogin('outlook')}
-              className="w-full sm:w-auto flex items-center justify-center gap-3 px-8 py-4 bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 rounded-xl font-semibold text-slate-900 dark:text-white hover:border-primary-500 transition-all shadow-sm"
-            >
-              <Microsoft className="text-blue-500" />
-              Connect Outlook
             </button>
           </div>
 
