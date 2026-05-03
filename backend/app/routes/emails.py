@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify, session, current_app
 from .. import socketio
-from ..services.email_service import GmailService, OutlookService
+from ..services.email_service import GmailService
 from ..services.ai_engine import AIRecommendationEngine
 from ..utils.store import scan_store
 import threading
@@ -36,18 +36,6 @@ def start_scan():
                     print(f"Gmail fetch error: {e}")
                     socketio.emit('scan_error', {'provider': 'gmail', 'error': str(e)}, room=socket_sid)
 
-            # Outlook Scan
-            if 'outlook_token' in session_data:
-                print(f"Fetching Outlook metadata for {socket_sid}")
-                try:
-                    outlook_emails = OutlookService.fetch_metadata(
-                        session_data['outlook_token'], socketio, socket_sid, months=months
-                    )
-                    all_emails.extend(outlook_emails)
-                    print(f"Fetched {len(outlook_emails)} emails from Outlook")
-                except Exception as e:
-                    print(f"Outlook fetch error: {e}")
-                    socketio.emit('scan_error', {'provider': 'outlook', 'error': str(e)}, room=socket_sid)
 
             # Analysis
             print(f"Analyzing {len(all_emails)} total emails")
@@ -93,9 +81,7 @@ def delete_emails():
 
     if provider == 'gmail' and 'gmail_token' in session:
         GmailService.delete_messages(session['gmail_token'], email_ids)
-    elif provider == 'outlook' and 'outlook_token' in session:
-        OutlookService.delete_messages(session['outlook_token'], email_ids)
     else:
-        return jsonify({'error': 'Not authenticated for provider'}), 401
+        return jsonify({'error': 'Not authenticated for provider or unsupported provider'}), 401
 
     return jsonify({'status': 'success', 'deleted_count': len(email_ids)})

@@ -31,7 +31,7 @@ function App() {
     fetch('/api/auth/status')
       .then(res => res.json())
       .then(data => {
-        if (data.gmail_authenticated || data.outlook_authenticated) {
+        if (data.gmail_authenticated) {
           setIsAuthenticated(true);
         }
       });

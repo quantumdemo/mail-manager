@@ -1,11 +1,9 @@
 import os
 import json
 import datetime
-import requests
 from google_auth_oauthlib.flow import Flow
 from googleapiclient.discovery import build
 from google.oauth2.credentials import Credentials
-import msal
 
 class GmailService:
     SCOPES = [
@@ -32,7 +30,9 @@ class GmailService:
         )
 
     @staticmethod
-    def fetch_metadata(creds_dict, socketio, sid, max_results=10000, months=6):
+    def fetch_metadata(creds_dict, socketio, sid, max_results=1000, months=6):
+        # Enforce max_results to 1000 as requested
+        max_results = min(max_results, 1000)
         creds = Credentials.from_authorized_user_info(creds_dict)
         service = build('gmail', 'v1', credentials=creds)
 
@@ -115,74 +115,3 @@ class GmailService:
             ).execute()
         return True
 
-class OutlookService:
-    SCOPES = ['Mail.Read', 'Mail.ReadWrite', 'Mail.Send']
-    AUTHORITY = "https://login.microsoftonline.com/common"
-
-    @staticmethod
-    def get_msal_app():
-        return msal.ConfidentialClientApplication(
-            os.getenv("OUTLOOK_CLIENT_ID"),
-            authority=OutlookService.AUTHORITY,
-            client_credential=os.getenv("OUTLOOK_CLIENT_SECRET")
-        )
-
-    @staticmethod
-    def fetch_metadata(token, socketio, sid, max_results=10000, months=6):
-        # Implementation using requests to Microsoft Graph API
-        headers = {'Authorization': f'Bearer {token}'}
-        date_threshold = (datetime.datetime.now() - datetime.timedelta(days=months*30)).isoformat() + "Z"
-
-        url = f"https://graph.microsoft.com/v1.0/me/messages?$filter=receivedDateTime ge {date_threshold}&$select=id,subject,from,receivedDateTime,size&$top=500"
-
-        emails = []
-        count = 0
-
-        while url and count < max_results:
-            response = requests.get(url, headers=headers).json()
-            messages = response.get('value', [])
-
-            for msg in messages:
-                sender = msg.get('from', {}).get('emailAddress', {}).get('address', 'Unknown')
-                emails.append({
-                    'id': msg['id'],
-                    'subject': msg.get('subject', 'No Subject'),
-                    'sender': sender,
-                    'date': msg.get('receivedDateTime', ''),
-                    'size': msg.get('size', 0),
-                    'provider': 'outlook'
-                })
-                count += 1
-
-                if count % 10 == 0:
-                    progress = min(int((count / max_results) * 100), 99)
-                    socketio.emit('scan_progress', {'progress': progress, 'count': count}, room=sid)
-
-            url = response.get('@odata.nextLink')
-            if not url:
-                break
-
-        return emails
-
-    @staticmethod
-    def delete_messages(token, message_ids):
-        headers = {'Authorization': f'Bearer {token}', 'Content-Type': 'application/json'}
-
-        # Outlook Graph API Batching
-        # Note: Microsoft Graph batching has a limit of 20 requests per batch.
-        for i in range(0, len(message_ids), 20):
-            batch_ids = message_ids[i:i+20]
-            requests_list = []
-            for idx, msg_id in enumerate(batch_ids):
-                requests_list.append({
-                    "id": str(idx),
-                    "method": "POST",
-                    "url": f"/me/messages/{msg_id}/trash"
-                })
-
-            requests.post(
-                "https://graph.microsoft.com/v1.0/\$batch",
-                headers=headers,
-                json={"requests": requests_list}
-            )
-        return True

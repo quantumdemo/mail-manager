@@ -1,14 +1,13 @@
 from flask import Blueprint, request, jsonify, session, redirect, url_for, current_app
 import os
-from ..services.email_service import GmailService, OutlookService
+from ..services.email_service import GmailService
 
 bp = Blueprint('auth', __name__, url_prefix='/api/auth')
 
 @bp.route('/status')
 def status():
     return jsonify({
-        'gmail_authenticated': 'gmail_token' in session,
-        'outlook_authenticated': 'outlook_token' in session
+        'gmail_authenticated': 'gmail_token' in session
     })
 
 @bp.route('/gmail/login')
@@ -48,30 +47,6 @@ def gmail_callback():
     }
     return redirect(os.getenv('FRONTEND_URL', 'http://localhost:5173') + '/dashboard')
 
-@bp.route('/outlook/login')
-def outlook_login():
-    try:
-        msal_app = OutlookService.get_msal_app()
-        auth_url = msal_app.get_authorization_request_url(OutlookService.SCOPES)
-        return jsonify({'url': auth_url})
-    except Exception as e:
-        current_app.logger.error(f"Outlook login error: {str(e)}")
-        return jsonify({'error': str(e)}), 500
-
-@bp.route('/outlook/callback')
-def outlook_callback():
-    code = request.args.get('code')
-    if not code:
-        return "No code provided", 400
-
-    msal_app = OutlookService.get_msal_app()
-    result = msal_app.acquire_token_by_authorization_code(code, scopes=OutlookService.SCOPES)
-
-    if "error" in result:
-        return f"Error: {result.get('error_description')}", 400
-
-    session['outlook_token'] = result['access_token']
-    return redirect(os.getenv('FRONTEND_URL', 'http://localhost:5173') + '/dashboard')
 
 @bp.route('/logout')
 def logout():
