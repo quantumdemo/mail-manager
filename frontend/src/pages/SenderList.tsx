@@ -67,15 +67,15 @@ const SenderList: React.FC = () => {
           <Filter className="text-slate-400" size={20} />
         </div>
 
-        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden">
-          <table className="w-full text-left border-collapse">
+        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden overflow-x-auto">
+          <table className="w-full text-left border-collapse min-w-[600px] md:min-w-full">
             <thead className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800">
               <tr>
-                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Sender</th>
-                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">Count</th>
-                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">Total Size</th>
-                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Status</th>
-                <th className="px-6 py-4"></th>
+                <th className="px-4 md:px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Sender</th>
+                <th className="px-4 md:px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">Count</th>
+                <th className="px-4 md:px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">Size</th>
+                <th className="hidden sm:table-cell px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Status</th>
+                <th className="px-4 md:px-6 py-4"></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -87,10 +87,10 @@ const SenderList: React.FC = () => {
                     onClick={() => setSelectedGroup(group)}
                     className={`cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors ${selectedGroup?.sender === group.sender ? 'bg-primary-50 dark:bg-primary-900/10' : ''}`}
                   >
-                    <td className="px-6 py-4 font-medium truncate max-w-xs">{group.sender}</td>
-                    <td className="px-6 py-4 text-right text-slate-500">{group.count}</td>
-                    <td className="px-6 py-4 text-right font-semibold">{formatSize(group.total_size)}</td>
-                    <td className="px-6 py-4">
+                    <td className="px-4 md:px-6 py-4 font-medium truncate max-w-[150px] md:max-w-xs">{group.sender}</td>
+                    <td className="px-4 md:px-6 py-4 text-right text-slate-500">{group.count}</td>
+                    <td className="px-4 md:px-6 py-4 text-right font-semibold">{formatSize(group.total_size)}</td>
+                    <td className="hidden sm:table-cell px-6 py-4">
                       {rec.label === 'safe' && (
                         <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400">
                           <CheckCircle size={12} /> Safe to Delete
@@ -107,7 +107,7 @@ const SenderList: React.FC = () => {
                         </span>
                       )}
                     </td>
-                    <td className="px-6 py-4 text-right">
+                    <td className="px-4 md:px-6 py-4 text-right">
                       <ChevronRight size={20} className="text-slate-300 ml-auto" />
                     </td>
                   </tr>

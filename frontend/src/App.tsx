@@ -4,9 +4,7 @@ import Dashboard from './pages/Dashboard';
 import SenderList from './pages/SenderList';
 import Landing from './pages/Landing';
 import logo from './assets/logo.jpg';
-import { io } from 'socket.io-client';
-
-const socket = io();
+import socket from './socket';
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
