@@ -18,46 +18,48 @@ def start_scan():
     # Use session ID as key for scan_store
     session_id = session.sid if hasattr(session, 'sid') else sid
 
-    def background_scan(app_context, session_data, socket_sid, s_id):
+    def background_scan(app_context, session_data, socket_sid, s_id, scan_months):
         print(f"Starting background scan for SID: {socket_sid}")
-        with app_context:
-            all_emails = []
+        try:
+            with app_context:
+                all_emails = []
 
-            # Gmail Scan
-            if 'gmail_token' in session_data:
-                print(f"Fetching Gmail metadata for {socket_sid}")
-                try:
-                    gmail_emails = GmailService.fetch_metadata(
-                        session_data['gmail_token'], socketio, socket_sid, months=months
-                    )
-                    all_emails.extend(gmail_emails)
-                    print(f"Fetched {len(gmail_emails)} emails from Gmail")
-                except Exception as e:
-                    print(f"Gmail fetch error: {e}")
-                    socketio.emit('scan_error', {'provider': 'gmail', 'error': str(e)}, room=socket_sid)
+                # Gmail Scan
+                if 'gmail_token' in session_data:
+                    print(f"Fetching Gmail metadata for {socket_sid}")
+                    try:
+                        gmail_emails = GmailService.fetch_metadata(
+                            session_data['gmail_token'], socketio, socket_sid, months=scan_months
+                        )
+                        all_emails.extend(gmail_emails)
+                        print(f"Fetched {len(gmail_emails)} emails from Gmail")
+                    except Exception as e:
+                        print(f"Gmail fetch error: {e}")
+                        socketio.emit('scan_error', {'provider': 'gmail', 'error': str(e)}, room=socket_sid)
 
+                # Analysis
+                print(f"Analyzing {len(all_emails)} total emails")
+                recommendations = AIRecommendationEngine.analyze_emails(all_emails)
+                groups = AIRecommendationEngine.group_emails(all_emails)
 
-            # Analysis
-            print(f"Analyzing {len(all_emails)} total emails")
-            recommendations = AIRecommendationEngine.analyze_emails(all_emails)
-            groups = AIRecommendationEngine.group_emails(all_emails)
+                # Store results in the custom store instead of thread-unsafe session
+                scan_store.set(s_id, {
+                    'emails': all_emails,
+                    'recommendations': recommendations,
+                    'groups': groups
+                })
 
-            # Store results in the custom store instead of thread-unsafe session
-            scan_store.set(s_id, {
-                'emails': all_emails,
-                'recommendations': recommendations,
-                'groups': groups
-            })
+                socketio.emit('scan_complete', {
+                    'total_count': len(all_emails),
+                    'total_size': sum(e['size'] for e in all_emails)
+                }, room=socket_sid)
+        except Exception as e:
+            print(f"Global background scan error: {e}")
+            socketio.emit('scan_error', {'provider': 'system', 'error': str(e)}, room=socket_sid)
 
-            socketio.emit('scan_complete', {
-                'total_count': len(all_emails),
-                'total_size': sum(e['size'] for e in all_emails)
-            }, room=socket_sid)
-
-    thread = threading.Thread(target=background_scan, args=(
-        current_app.app_context(), dict(session), sid, session_id
-    ))
-    thread.start()
+    socketio.start_background_task(background_scan,
+        current_app.app_context(), dict(session), sid, session_id, months
+    )
 
     return jsonify({'status': 'scan_started'})
 

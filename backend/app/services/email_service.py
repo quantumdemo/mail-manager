@@ -33,6 +33,7 @@ class GmailService:
     def fetch_metadata(creds_dict, socketio, sid, max_results=1000, months=6):
         # Enforce max_results to 1000 as requested
         max_results = min(max_results, 1000)
+        print(f"Fetching Gmail metadata for sid: {sid}, max_results: {max_results}")
         creds = Credentials.from_authorized_user_info(creds_dict)
         service = build('gmail', 'v1', credentials=creds)
 
@@ -43,22 +44,25 @@ class GmailService:
         emails = []
         next_page_token = None
         count = 0
+        batch_size = 50 # Reduced batch size for better responsiveness
 
         while count < max_results:
+            limit = min(batch_size, max_results - count)
+            print(f"Listing messages with limit {limit}, count so far: {count}")
             results = service.users().messages().list(
-                userId='me', q=query, pageToken=next_page_token, maxResults=min(500, max_results - count)
+                userId='me', q=query, pageToken=next_page_token, maxResults=limit
             ).execute()
 
             messages = results.get('messages', [])
             if not messages:
+                print("No more messages found.")
                 break
 
             # Use batch requests to speed up metadata fetching
             def callback(request_id, response, exception):
                 nonlocal count
                 if exception is not None:
-                    # Handle error
-                    pass
+                    print(f"Gmail batch callback error: {exception}")
                 else:
                     headers = response.get('payload', {}).get('headers', [])
                     subject = next((h['value'] for h in headers if h['name'].lower() == 'subject'), 'No Subject')
