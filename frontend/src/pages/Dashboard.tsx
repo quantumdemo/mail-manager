@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Play, RotateCcw, AlertTriangle, CheckCircle, Database, Trash2 } from 'lucide-react';
-import { io } from 'socket.io-client';
-
-const socket = io();
+import socket from '../socket';
 
 const Dashboard: React.FC = () => {
   const [isScanning, setIsScanning] = useState(false);
@@ -14,27 +12,46 @@ const Dashboard: React.FC = () => {
   });
 
   useEffect(() => {
-    socket.on('scan_progress', (data) => {
+    // Fetch initial data if scan was already completed
+    fetch('/api/emails/data')
+      .then(res => res.json())
+      .then(data => {
+        if (data.emails && data.emails.length > 0) {
+          setSummary({
+            total_scanned: data.emails.length,
+            estimated_size: data.emails.reduce((acc: number, e: any) => acc + e.size, 0),
+            potential_savings: data.emails.reduce((acc: number, e: any) => acc + e.size, 0) * 0.4
+          });
+          setProgress(100);
+        }
+      });
+
+    const onProgress = (data: any) => {
+      console.log('Scan progress received:', data);
       setProgress(data.progress);
       setSummary(prev => ({
         ...prev,
         total_scanned: data.count
       }));
-    });
+    };
 
-    socket.on('scan_complete', (data) => {
+    const onComplete = (data: any) => {
+      console.log('Scan complete received:', data);
       setIsScanning(false);
       setProgress(100);
       setSummary({
         total_scanned: data.total_count,
         estimated_size: data.total_size,
-        potential_savings: data.total_size * 0.4 // Mock estimation
+        potential_savings: data.total_size * 0.4
       });
-    });
+    };
+
+    socket.on('scan_progress', onProgress);
+    socket.on('scan_complete', onComplete);
 
     return () => {
-      socket.off('scan_progress');
-      socket.off('scan_complete');
+      socket.off('scan_progress', onProgress);
+      socket.off('scan_complete', onComplete);
     };
   }, []);
 
