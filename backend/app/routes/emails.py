@@ -7,6 +7,8 @@ import threading
 
 bp = Blueprint('emails', __name__, url_prefix='/api/emails')
 
+active_scans = set()
+
 @bp.route('/scan', methods=['POST'])
 def start_scan():
     sid = request.args.get('sid') # SocketIO session ID
@@ -17,6 +19,9 @@ def start_scan():
 
     # Use session ID as key for scan_store
     session_id = session.sid if hasattr(session, 'sid') else sid
+
+    if session_id in active_scans:
+        return jsonify({'error': 'Scan already in progress'}), 409
 
     def background_scan(app_context, session_data, socket_sid, s_id, scan_months):
         print(f"Starting background scan for SID: {socket_sid}")
@@ -56,7 +61,11 @@ def start_scan():
         except Exception as e:
             print(f"Global background scan error: {e}")
             socketio.emit('scan_error', {'provider': 'system', 'error': str(e)}, room=socket_sid)
+        finally:
+            if s_id in active_scans:
+                active_scans.remove(s_id)
 
+    active_scans.add(session_id)
     socketio.start_background_task(background_scan,
         current_app.app_context(), dict(session), sid, session_id, months
     )

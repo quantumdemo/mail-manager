@@ -2,6 +2,7 @@ import os
 import json
 import datetime
 import time
+import random
 from google_auth_oauthlib.flow import Flow
 from googleapiclient.discovery import build
 from google.oauth2.credentials import Credentials
@@ -11,6 +12,20 @@ class GmailService:
         'https://www.googleapis.com/auth/gmail.readonly',
         'https://www.googleapis.com/auth/gmail.modify'
     ]
+
+    @staticmethod
+    def execute_with_retry(request, retries=5):
+        for i in range(retries):
+            try:
+                return request.execute()
+            except Exception as e:
+                if "429" in str(e) or "rateLimitExceeded" in str(e):
+                    sleep_time = (2 ** i) + random.random()
+                    print(f"Rate limit hit, retrying in {sleep_time:.2f}s...")
+                    time.sleep(sleep_time)
+                else:
+                    raise
+        return request.execute() # Final attempt
 
     @staticmethod
     def get_flow(state=None):
@@ -50,21 +65,22 @@ class GmailService:
         while count < max_results:
             limit = min(batch_size, max_results - count)
             print(f"Listing messages with limit {limit}, count so far: {count}")
-            results = service.users().messages().list(
+
+            list_request = service.users().messages().list(
                 userId='me', q=query, pageToken=next_page_token, maxResults=limit
-            ).execute()
+            )
+            results = GmailService.execute_with_retry(list_request)
 
             messages = results.get('messages', [])
             if not messages:
                 print("No more messages found.")
                 break
 
-            # Use batch requests to speed up metadata fetching
-            def callback(request_id, response, exception):
-                nonlocal count
-                if exception is not None:
-                    print(f"Gmail batch callback error: {exception}")
-                else:
+            for msg in messages:
+                try:
+                    get_request = service.users().messages().get(userId='me', id=msg['id'], format='metadata')
+                    response = GmailService.execute_with_retry(get_request)
+
                     headers = response.get('payload', {}).get('headers', [])
                     subject = next((h['value'] for h in headers if h['name'].lower() == 'subject'), 'No Subject')
                     sender = next((h['value'] for h in headers if h['name'].lower() == 'from'), 'Unknown')
@@ -81,22 +97,14 @@ class GmailService:
                     })
                     count += 1
 
-                    if count % 10 == 0:
-                        # Since we don't know total, we use a relative progress or just the count
-                        # For now, let's keep progress relative to max_results but ensure it updates
+                    if count % 5 == 0:
                         progress = min(int((count / max_results) * 100), 99)
                         socketio.emit('scan_progress', {'progress': progress, 'count': count}, room=sid)
 
-            batch = service.new_batch_http_request(callback=callback)
-            for msg in messages:
-                batch.add(service.users().messages().get(userId='me', id=msg['id'], format='metadata'))
-
-            try:
-                batch.execute()
-                # Small delay to respect rate limits
-                time.sleep(0.5)
-            except Exception as e:
-                print(f"Error executing Gmail batch: {e}")
+                    # Essential delay to avoid concurrency limits
+                    time.sleep(0.1)
+                except Exception as e:
+                    print(f"Error fetching metadata for {msg['id']}: {e}")
 
             next_page_token = results.get('nextPageToken')
             if not next_page_token:
