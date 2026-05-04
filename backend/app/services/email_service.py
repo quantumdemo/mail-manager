@@ -1,6 +1,7 @@
 import os
 import json
 import datetime
+import time
 from google_auth_oauthlib.flow import Flow
 from googleapiclient.discovery import build
 from google.oauth2.credentials import Credentials
@@ -44,7 +45,7 @@ class GmailService:
         emails = []
         next_page_token = None
         count = 0
-        batch_size = 50 # Reduced batch size for better responsiveness
+        batch_size = 20 # Further reduced to avoid 429 errors
 
         while count < max_results:
             limit = min(batch_size, max_results - count)
@@ -92,6 +93,8 @@ class GmailService:
 
             try:
                 batch.execute()
+                # Small delay to respect rate limits
+                time.sleep(0.5)
             except Exception as e:
                 print(f"Error executing Gmail batch: {e}")
 
